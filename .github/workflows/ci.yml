@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_ibrahima01 }}/democyber:latest
+      DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/democyber:latest
       
     steps:
       # Checkout the code

@@ -57,7 +57,7 @@ jobs:
 
       # Build Docker image
       - name: Build Docker image
-        run: docker build -t ${{ env.DOCKER_IMAGE_NAME }} .
+        run: docker build -t $DOCKER_IMAGE_NAME .
 
       # Test Docker image
       - name: Test Docker image locally
@@ -69,10 +69,13 @@ jobs:
          docker rm democyber-test
         
       # Trivy scan
+      - name: Build Docker image
+        run: docker build -t democyber:latest .
+
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ${{ env.DOCKER_IMAGE_NAME }}
+          image-ref: democyber:latest
           format: 'sarif'
           output: 'trivy-results.sarif'
           exit-code: '1'
@@ -88,4 +91,4 @@ jobs:
 
       # Push Docker image sur Docker Hub
       - name: Push Docker image
-        run: docker push ${{ env.DOCKER_IMAGE_NAME }}
+        run: docker push $DOCKER_IMAGE_NAME

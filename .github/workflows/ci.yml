@@ -1,6 +1,5 @@
 name: CI/CD - democyber
 
-# Trigger the workflow on push or pull request to main
 on:
   push:
     branches: [ main ]
@@ -15,32 +14,36 @@ jobs:
       DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/democyber:latest
       
     steps:
-      # Checkout the code
+      # 1. Checkout avec tout l'historique Git (indispensable pour Gitleaks)
       - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Install Java
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/checkout@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          fetch-depth: 0
 
-      # Compile Java code
-      - name: Compile Java
-        run: mvn compile
-
-      # Build Maven
-      - name: Build Java project with Maven
-        run: mvn clean package
-
-      # Gitleaks scan (before compilation)
+      # 2. Gitleaks scan (exécuté avant la compilation comme indiqué dans votre commentaire)
       - name: Run Gitleaks scan
-        uses: zricethezav/gitleaks-action@v2
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/path" zricethezav/gitleaks:latest detect --source="/path" --report-format=sarif --report-path="/path/results.sarif" --exit-code 0
 
-      # Upload the Gitleaks report
+      # 3. Upload du rapport Gitleaks (toujours exécuté)
       - name: Upload Gitleaks report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
           path: results.sarif
+
+      # 4. Install Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # 5. Compile Java code
+      - name: Compile Java
+        run: mvn compile
+
+      # 6. Build Maven
+      - name: Build Java project with Maven
+        run: mvn clean package

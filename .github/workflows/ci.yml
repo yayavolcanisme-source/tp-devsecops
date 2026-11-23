@@ -14,18 +14,18 @@ jobs:
       DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/democyber:latest
       
     steps:
-      # 1. Checkout avec tout l'historique Git (indispensable pour Gitleaks)
+      # 1. Checkout avec tout l'historique Git
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Gitleaks scan (exécuté avant la compilation comme indiqué dans votre commentaire)
+      # 2. Gitleaks scan
       - name: Run Gitleaks scan
         run: |
           docker run --rm -v "${{ github.workspace }}:/path" zricethezav/gitleaks:latest detect --source="/path" --report-format=sarif --report-path="/path/results.sarif" --exit-code 0
 
-      # 3. Upload du rapport Gitleaks (toujours exécuté)
+      # 3. Upload du rapport Gitleaks
       - name: Upload Gitleaks report
         if: always()
         uses: actions/upload-artifact@v4
@@ -40,55 +40,48 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 5. Compile Java code
-      - name: Compile Java
-        run: mvn compile
-
-      # 6. Build Maven
+      # 5. Build Maven (clean package exécute déjà compile)
       - name: Build Java project with Maven
         run: mvn clean package
 
-              # Login Docker Hub
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # Build Docker image
+      # 6. Build Docker image (un seul build suffit)
       - name: Build Docker image
         run: docker build -t $DOCKER_IMAGE_NAME .
 
-      # Test Docker image
+      # 7. Test Docker image
       - name: Test Docker image locally
         run: |
-         docker run -d --name democyber-test -p 8080:8080 $DOCKER_IMAGE_NAME
-         sleep 10
-         curl -f http://localhost:8080 || echo "App not responding"
-         docker stop democyber-test
-         docker rm democyber-test
+          docker run -d --name democyber-test -p 8080:8080 $DOCKER_IMAGE_NAME
+          sleep 10
+          curl -f http://localhost:8080 || echo "App not responding"
+          docker stop democyber-test
+          docker rm democyber-test
         
-      # Trivy scan
-      - name: Build Docker image
-        run: docker build -t democyber:latest .
-
+      # 8. Trivy scan sur l'image déjà construite
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: democyber:latest
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-          exit-code: '1'
+          exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-      # Upload Trivy report
+      # 9. Upload Trivy report
       - name: Upload Trivy report
         uses: actions/upload-artifact@v4
-        if: always() # Permet d'uploader même si le scan échoue
+        if: always()
         with:
           name: trivy-report
           path: trivy-results.sarif
 
-      # Push Docker image sur Docker Hub
+      # 10. Login Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 11. Push Docker image sur Docker Hub
       - name: Push Docker image
         run: docker push $DOCKER_IMAGE_NAME

@@ -59,13 +59,14 @@ jobs:
         
       # 8. Trivy scan sur l'image déjà construite
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
+
 
       # 9. Upload Trivy report
       - name: Upload Trivy report

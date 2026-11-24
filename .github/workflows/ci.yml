@@ -86,3 +86,14 @@ jobs:
       # 11. Push Docker image sur Docker Hub
       - name: Push Docker image
         run: docker push $DOCKER_IMAGE_NAME
+
+      # Run SonarCloud scan
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
